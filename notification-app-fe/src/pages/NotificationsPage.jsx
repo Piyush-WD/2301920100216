@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Log } from "../utils/logger";
 import {
   Alert,
   Badge,
@@ -17,18 +18,34 @@ import { useNotifications } from "../hooks/useNotifications";
 
 export function NotificationsPage() {
   const [filter, setFilter] = useState();
-  const [page, setPage] = useState("1");
+  const [page, setPage] = useState(1);
 
-  const { notifications, totalPages, loading, error } = useNotifications();
+  const { notifications, totalPages, loading, error } = useNotifications(
+    page,
+    filter,
+  );
 
-  const unreadCount = 2;
+  const unreadCount = notifications.length;
 
-  const handleFilterChange = (newFilter) => {
+  const handleFilterChange = async (newFilter) => {
+    if (newFilter === null || newFilter === filter) return;
 
+    setFilter(newFilter);
+
+    await Log(
+      "frontend",
+      "info",
+      "component",
+      `Filter changed to ${newFilter}`,
+    );
   };
 
-  const handlePageChange = (_, newPage) => {
+  const handlePageChange = async (_, newPage) => {
+    if (newPage === page) return;
 
+    setPage(newPage);
+
+    await Log("frontend", "info", "component", `Page changed to ${newPage}`);
   };
 
   return (
@@ -48,8 +65,14 @@ export function NotificationsPage() {
         <NotificationFilter value={filter} onChange={handleFilterChange} />
       </Box>
 
-      {true && (
-        <Box display="flex" justifyContent="center" py={6}>
+      {loading && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            py: 6,
+          }}
+        >
           <CircularProgress />
         </Box>
       )}
@@ -58,20 +81,26 @@ export function NotificationsPage() {
         <Alert severity="error">Failed to load notifications: {error}</Alert>
       )}
 
-      {loading && !error && notifications.length == "0" && (
+      {!loading && !error && notifications.length === 0 && (
         <Alert severity="info">Something message</Alert>
       )}
 
-      {loading && !error && notifications.length > 0 && (
+      {!loading && !error && notifications.length > 0 && (
         <Stack spacing={1.5}>
           {notifications.map((n) => (
-            <></>
+            <NotificationCard key={n.ID} notification={n} />
           ))}
         </Stack>
       )}
 
       {!loading && (
-        <Box display="flex" justifyContent="center" mt={4}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mt: 4,
+          }}
+        >
           <Pagination
             count={totalPages}
             page={page}
